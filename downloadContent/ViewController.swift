@@ -28,6 +28,7 @@ class ViewController: UIViewController {
     @IBAction func downloadContent(sender: UIButton) {
         let destination = Alamofire.Request.suggestedDownloadDestination(directory: .DocumentDirectory, domain: .UserDomainMask)
         let download = Alamofire.download(.GET, "https://s3.amazonaws.com/applicadosunits/ABC/NIVEL+1/Unidad1.zip", destination: destination)
+        //        let download = Alamofire.download(.GET, "https://httpbin.org/stream/100", destination: destination)
         
         download.progress { bytesRead, totalBytesRead, totalBytesExpectedToRead in
             print(totalBytesRead)
@@ -40,7 +41,7 @@ class ViewController: UIViewController {
                 print("Total bytes read on main queue: \(totalBytesRead)")
                 print("PROGRESS: \(progress)")
                 self.progressLbl.text = String(progress.format(".0")) + "%"
-//                self.progressLbl.text = String(progress.format(".2"))
+                //                self.progressLbl.text = String(progress.format(".2"))
             }
         }
         download.response { _, _, _, error in
@@ -56,6 +57,24 @@ class ViewController: UIViewController {
                 print("Failed with error: \(error)")
             } else {
                 print("Downloaded file successfully")
+                do {
+                    let urlResponseDictionary = download.response!.dictionaryWithValuesForKeys(["URL"])
+                    if let fileNameToUnzip = urlResponseDictionary["URL"]?.lastPathComponent! {
+                        print(fileNameToUnzip)
+                        
+                        let path = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as String
+                        let url = NSURL(fileURLWithPath: path)
+                        let filePath = url.URLByAppendingPathComponent(fileNameToUnzip).path!
+                        print(filePath)
+                        
+                        // Unzip
+                        try Zip.unzipFile(NSURL(fileURLWithPath: filePath), destination: url, overwrite: true, password: "", progress: { (progress) -> () in
+                            print(progress)
+                        })
+                    }
+                } catch {
+                    print("Error al descomprimir")
+                }
             }
         }
     }
